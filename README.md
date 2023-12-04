@@ -12,4 +12,5 @@ Performance is generally disregarded (by default). Your system shouldn't slow to
 The defaults also aren't as restrictive as is optimal for usability reasons, these can also be disabled by user discretion.
 Defence against government adversaries is out of scope and out of threat model. 
 
-# TODO: Implement Lanzaboote, a secure boot implementation for NixOS, when it is mature. 
+# TODO:
+Implement Lanzaboote, a secure boot implementation for NixOS, when it is mature. 
