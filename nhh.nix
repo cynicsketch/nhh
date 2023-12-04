@@ -180,7 +180,7 @@
     ];
   };
   environment = {
-    # memoryAllocator = { provider = "mimalloc"; }; # NOTABLE REGRESSION!!
+    # memoryAllocator = { provider = "graphene-hardened"; }; # NOTABLE REGRESSION!!
     # Alternative memory allocators can be more secure. graphene-hardened would
     # be most ideal for security. Note: On nixos-unstable (Nov 2023) 
     # graphene-hardened will BREAK your system, and nix rollbacks WILL NOT work.
