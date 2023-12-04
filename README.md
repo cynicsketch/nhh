@@ -1,6 +1,8 @@
 # nhh
 A NixOS module applying various changes to improve security.
 
+"nhh" stands for "NixOS, harder, hardened." Because it's harder than hardened.
+
 The decisions made were primarily based on madaidan's insecurities, but not solely.
 
 # Goals:
