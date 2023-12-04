@@ -180,10 +180,10 @@
     ];
   };
   environment = {
-    # memoryAllocator = { provider = "mimalloc"; }; # Set to libc if applications
-    # break. Set to scudo for more security, graphene-hardened for most
-    # security. Note: On nixos-unstable (Nov 2023) scudo and graphene-hardened
-    # will BREAK your system, and nix rollbacks WILL NOT work.
+    memoryAllocator = { provider = "mimalloc"; }; # NOTABLE REGRESSION!!
+    # Alternative memory allocators can be more secure. graphene-hardened would
+    # be most ideal for security. Note: On nixos-unstable (Nov 2023) 
+    # graphene-hardened will BREAK your system, and nix rollbacks WILL NOT work.
     systemPackages = # doas-sudo wrapper, only needed if using sudo.
       (with pkgs; [ (((pkgs).writeScriptBin "sudo" ''exec doas "$@"'')) ]);
   };
@@ -193,7 +193,8 @@
       device = "/dev/shm";
       options = [ ("bind") ("nosuid") ("noexec") ("nodev") ];
     };
-    "/home" = { # Add noexec for more security, if your workflow allows for it.
+    "/home" = { # NOTABLE REGRESSION!!!
+    # Add noexec for more security, if your workflow allows for it.
       device = "/home";
       options = [ ("bind") ("nosuid") ("nodev") ];
     };
@@ -201,7 +202,8 @@
       device = "/tmp";
       options = [ ("bind") ("nosuid") ("noexec") ("nodev") ];
     };
-    "/var" = { # Add noexec for more security, if your workflow allows for it.
+    "/var" = { # NOTABLE REGRESSION!!!
+    # Add noexec for more security, if your workflow allows for it.
       device = "/var";
       options = [ ("bind") ("nosuid") ("nodev") ];
     };
