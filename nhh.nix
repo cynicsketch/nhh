@@ -180,7 +180,7 @@
     ];
   };
   environment = {
-    memoryAllocator = { provider = "mimalloc"; }; # Set to libc if applications
+    # memoryAllocator = { provider = "mimalloc"; }; # Set to libc if applications
     # break. Set to scudo for more security, graphene-hardened for most
     # security. Note: On nixos-unstable (Nov 2023) scudo and graphene-hardened
     # will BREAK your system, and nix rollbacks WILL NOT work.
