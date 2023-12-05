@@ -256,7 +256,9 @@
       };
     };
     polkit = { # These polkit rules are only needed for GNOME Shell
-    # integration.
+    # integration. You may want to change the line "subject.isInGroup..."
+    # if you don't want to use your sudo/sudo equivalent user as your
+    # "unprivileged account." That would be recommended, but is out of scope.
       extraConfig = ''
         polkit.addRule(function(action, subject) {
             if ((action.id == "org.usbguard.Policy1.listRules" ||
@@ -267,9 +269,7 @@
                  action.id == "org.usbguard1.getParameter" ||
                  action.id == "org.usbguard1.setParameter") &&
                 subject.active == true && subject.local == true &&
-                subject.isInGroup("wheel")) { # If you don't use your sudo or
-                # equivalent user as your "unprivileged," account, which is
-                # recommended but out of scope here, change this.
+                subject.isInGroup("wheel")) {
                     return polkit.Result.YES;
             }
         });
