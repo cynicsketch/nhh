@@ -286,9 +286,6 @@
     usbguard = { # By default, GNOME Shell integration is enabled for USBGuard.
     # USB devices are blocked on lockscreen but allowed when logged in, which
     # is similar to ChromeOS in implementation. Not needed if not using GNOME.
-      presentDevicePolicy = "allow"; # NOTABLE REGRESSION!!!
-      # This automatically allows any USB device plugged in before the USBGuard
-      # daemon starts.
       dbus = { enable = true; }; # Needed only for GNOME Shell integration.
       enable = true; # There are alternative methods other than USBGuard to
       # defeat BadUSB attacks, see madaidan's website.
