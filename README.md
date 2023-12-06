@@ -7,12 +7,12 @@ The decisions made were primarily based on madaidan's insecurities, but not sole
 
 # Goals:
 Provide sane defaults that should generally avoid breakage, while still improving security in a meaningful way.
+Note: Some defaults break hibernate, harm performance significantly, or may cause hardware compatibility issues. It is recommended to read through the comments before applying, to be aware of options you may want to override.
 Security is a spectrum; common overrides are documented in the module with comments, should a user wish to tweak their 'balance' between performance/usability/security. 
 
 # Non-goals:
-Performance is generally disregarded (by default). Your system shouldn't slow to a crawl, but in benchmarking you should certainly expect at least some overhead. Particularly hard hitting options can be disabled by user discretion.
-The defaults also aren't as restrictive as is optimal for usability reasons, these can also be disabled by user discretion.
-Defence against government adversaries is out of scope and out of threat model. 
+Defence against government adversaries is out of scope and out of threat model. Some changes are relaxed for usability reasons, therefore the defaults aren't necessarily "optimal" for every possible use case; nothing is.
+
 
 # Usage:
 Import "nnh.nix" into your NixOS configuration. To set overrides, edit the module and read the comments. You should read over the comments in the module anyways before you implement it.
