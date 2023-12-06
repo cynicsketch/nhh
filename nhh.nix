@@ -291,9 +291,9 @@
     haveged = { enable = true; }; # Haveged adds entropy; it's not useless,
     # unlike what the Arch wiki says. The haveged *inspired* implementation in
     # mainline Linux is different, haveged still provides additional entropy. 
-    resolved = { dnssec = "true"; } # DNS connections will fail if not using
+    resolved = { dnssec = "true"; }; # DNS connections will fail if not using
     # a DNS server supporting DNSSEC.
-    timesyncd = { enable = false; } # timesyncd is replaced with chrony for
+    timesyncd = { enable = false; }; # timesyncd is replaced with chrony for
     # syncing time.
     chrony = {
       enable = true;
