@@ -2,6 +2,9 @@
 # for detailed explanations:
 # Original URL: https://madaidans-insecurities.github.io/guides/linux-hardening.html
 # Archive: https://web.archive.org/web/20220320000126/https://madaidans-insecurities.github.io/guides/linux-hardening.html
+# Additionally sourced is privsec's Desktop Linux Hardening:
+# Original URL: https://privsec.dev/posts/linux/desktop-linux-hardening/
+# Archive: archive.org is down at time of writing. Will fix later.
 
 # Sections from madaidan's guide that are IRRELEVANT/NON-APPLICABLE:
 # 1. (Advice)
@@ -12,6 +15,7 @@
 # 2.6 (Advice)
 # 2.10 (Package is broken)
 # 7 (Advice)
+# 10.5.4 (The problem of NTP being unencrypted is fixed by using NTS instead.)
 # 15 (Implemented by default)
 # 16 (Not needed with MAC spoofing)
 # 19 (Advice)
@@ -33,7 +37,6 @@
 # 10.2 (Inconvenient, not within threat model)
 # 10.3 (No option)
 # 10.5.3 (Not packaged)
-# 10.5.4 (Not packaged)
 # 10.6 (Not packaged, inconvenient and not within threat model)
 # 11 (No option, NixOS doesn't obey FHS)
 # 21.1 (Out of scope)
@@ -156,6 +159,8 @@
       ("page_alloc.shuffle=1")
       ("pti=on") # Mitigates Meltdown, some KASLR bypasses. Hurts performance.
       ("randomize_kstack_offset=on")
+      ("extra_latent_entropy") # Gather more entropy on boot. Only works with
+      # linux_hardened patchset.
       ("vsyscall=none")
       ("debugfs=off")
       ("oops=panic")
@@ -163,15 +168,18 @@
       # prevents out-of-tree kernel modules from working unless signed, incl.
       # DKMS, so some drivers, such as Nvidia and VirtualBox drivers, may need
       # to be signed.
-      ("lockdown=confidentiality") # Mitigates many ways to extract info from
-      # the kernel, but notably breaks hibernation. Hibernation only matters on
-      # battery operated devices.
+      ("lockdown=confidentiality") # Breaks hibernate. Also may break some
+      # drivers, similarly to the above.
       ("quiet")
       ("loglevel=0")
       ("random.trust_cpu=off")
+      ("random.trust_bootloader=off")
       ("intel_iommu=on")
-      ("amd_iommu=on")
-      ("efi=disable_early_pci_dma")
+      ("amd_iommu=force_isolation")
+      ("iommu=force")
+      ("iommu.passthrough=0") # GPU passthrough to VMs will not work with this.
+      ("iommu.strict=1")
+      ("efi=disable_early_pci_dma") # May prevent some systems from booting.
       ("mitigations=auto,nosmt") # Apply relevant CPU exploit mitigations, and
       # disable symmetric multithreading. Remove "nosmt" to get back SMT, which
       # may improve performance, but may make your system more vulnerable to
@@ -180,7 +188,7 @@
     ];
   };
   environment = {
-    # memoryAllocator = { provider = "graphene-hardened"; }; # NOTABLE REGRESSION!!
+    # memoryAllocator = { provider = "graphene-hardened"; }; # NOTABLE REGRESSION!!!
     # Alternative memory allocators can be more secure. graphene-hardened would
     # be most ideal for security. Note: On nixos-unstable (Nov 2023) 
     # graphene-hardened will BREAK your system, and nix rollbacks WILL NOT work.
@@ -283,6 +291,40 @@
     haveged = { enable = true; }; # Haveged adds entropy; it's not useless,
     # unlike what the Arch wiki says. The haveged *inspired* implementation in
     # mainline Linux is different, haveged still provides additional entropy. 
+    resolved = { dnssec = "true"; } # DNS connections will fail if not using
+    # a DNS server supporting DNSSEC.
+    timesyncd = { enable = false; } # timesyncd is replaced with chrony for
+    # syncing time.
+    chrony = {
+      enable = true;
+      extraFlags = [ "-F 1" ]; # Enable seccomp filter for chronyd.
+      # The below config is borrowed from GrapheneOS server infrastructure.
+      # It enables NTS to secure NTP requests, among some other useful
+      # settings.
+      extraConfig = ''
+        server time.cloudflare.com iburst nts
+        server ntppool1.time.nl iburst nts
+        server nts.netnod.se iburst nts
+        server ptbtime1.ptb.de iburst nts
+
+        minsources 2
+        authselectmode require
+
+        # EF
+        dscp 46
+
+        driftfile /var/lib/chrony/drift
+        ntsdumpdir /var/lib/chrony
+
+        leapsectz right/UTC
+        makestep 1.0 3
+
+        rtconutc
+        rtcsync
+
+        cmdport 0
+      '';
+    };
     usbguard = { # By default, GNOME Shell integration is enabled for USBGuard.
     # USB devices are blocked on lockscreen but allowed when logged in, which
     # is similar to ChromeOS in implementation. Not needed if not using GNOME.
@@ -298,3 +340,4 @@
   users = { users = { root = { hashedPassword = "!"; }; }; }; # Prevents login
   # to to the root account.
 }))
+
