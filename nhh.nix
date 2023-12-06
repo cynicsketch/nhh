@@ -30,7 +30,6 @@
 # 2.11 (Unique for all hardware, inconvenient)
 # 4 (Sandboxing must be done manually)
 # 6 (Compiling everything is inconvenient)
-# 8.1 (No option)
 # 8.6 (No option, not for all systems)
 # 8.7 (Inconvenient, depends on specific user behavior)
 # 10.1 (Inconvenient, not within threat model)
@@ -50,49 +49,7 @@
 ({ config, lib, pkgs, ... }:
 (with lib; {
   boot = {
-    blacklistedKernelModules = [
-      ("dccp")
-      ("sctp")
-      ("rds")
-      ("tipc")
-      ("n-hdlc")
-      ("ax25")
-      ("netrom")
-      ("x25")
-      ("rose")
-      ("decnet")
-      ("econet")
-      ("af_802154")
-      ("ipx")
-      ("appletalk")
-      ("psnap")
-      ("p8023")
-      ("p8022")
-      ("can")
-      ("atm")
-      ("cramfs")
-      ("freevxfs")
-      ("jffs2")
-      ("hfs")
-      ("hfsplus")
-      ("squashfs")
-      ("udf")
-      ("cifs")
-      ("nfs")
-      ("nfsv3")
-      ("nfsv4")
-      ("ksmbd")
-      ("gfs2")
-      ("vivid")
-      # NOTABLE REGRESSION!!!
-      # Disable BT and web cam for privacy/attack surface reduction. 
-      # ("bluetooth") # Disable bluetooth
-      # ("btusb") # Same as above
-      # ("uvcvideo") # Disable webcam
-      ("thunderbolt") # Disable Thunderbolt due to risk of DMA attacks
-      ("firewire-core") # Disable FireWire due to risk of DMA attacks
-    ];
-    kernel = {
+   kernel = {
       sysctl = {
         "dev.tty.ldisc_autoload" = "0";
         "fs.protected_fifos" = "2";
@@ -100,7 +57,7 @@
         "fs.protected_regular" = "2";
         "fs.protected_symlinks" = "1";
         "fs.suid_dumpable" = "0";
-        "kernel.dmesg_restrict" = "1"; # dmesg requires admin privileges now.
+        "kernel.dmesg_restrict" = "1";
         "kernel.kexec_load_disabled" = "1";
         "kernel.kptr_restrict" = "2";
         "kernel.perf_event_paranoid" = "3";
@@ -151,7 +108,9 @@
         "vm.unprivileged_userfaultfd" = "0";
       };
     };
-    kernelPackages = (pkgs).linuxPackages_hardened;
+    kernelPackages = (pkgs).linuxPackages_hardened; # linux_hardened patchset
+    # breaks hibernation. Hibernation is only important on battery operated
+    # systems.
     kernelParams = [
       ("slab_nomerge")
       ("init_on_alloc=1")
@@ -168,8 +127,9 @@
       # prevents out-of-tree kernel modules from working unless signed, incl.
       # DKMS, so some drivers, such as Nvidia and VirtualBox drivers, may need
       # to be signed.
-      ("lockdown=confidentiality") # Breaks hibernate. Also may break some
-      # drivers, similarly to the above.
+      ("lockdown=confidentiality") # May break some drivers, same reason as the
+      # above. Also breaks hibernation. Hibernation is only useful on battery
+      # operated systems.
       ("quiet")
       ("loglevel=0")
       ("random.trust_cpu=off")
@@ -194,7 +154,171 @@
     # graphene-hardened will BREAK your system, and nix rollbacks WILL NOT work.
     systemPackages = # doas-sudo wrapper, only needed if using sudo.
       (with pkgs; [ (((pkgs).writeScriptBin "sudo" ''exec doas "$@"'')) ]);
-  };
+    etc = {
+      securetty = { # Empty /etc/securetty to prevent root login on tty.
+        text = ''
+        # /etc/securetty: list of terminals on which root is allowed to login.
+        # See securetty(5) and login(1).
+        '';
+      };
+      "modprobe.d/nixos.conf" = { # Borrow Kicksecure module blacklist.
+      # "install "foobar" /bin/not-existent" prevents the module from being
+      # loaded at all. "blacklist "foobar"" prevents the module from being
+      # loaded automatically at boot, but it can still be loaded afterwards.
+        text = ''
+## Copyright (C) 2012 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+## See the file COPYING for copying conditions.
+
+## See the following links for a community discussion and overview regarding the selections
+## https://forums.whonix.org/t/blacklist-more-kernel-modules-to-reduce-attack-surface/7989
+## https://madaidans-insecurities.github.io/guides/linux-hardening.html#kasr-kernel-modules
+
+## Disable automatic conntrack helper assignment
+## https://phabricator.whonix.org/T486
+options nf_conntrack nf_conntrack_helper=0
+
+## Disable bluetooth to reduce attack surface due to extended history of security vulnerabilities
+## https://en.wikipedia.org/wiki/Bluetooth#History_of_security_concerns
+#
+## Now replaced by a privacy and security preserving default bluetooth configuration for better usability
+#
+# install bluetooth /bin/disabled-bluetooth-by-security-misc
+# install btusb /bin/disabled-bluetooth-by-security-misc
+
+## Disable thunderbolt and firewire modules to prevent some DMA attacks
+install thunderbolt /bin/disabled-thunderbolt-by-security-misc
+install firewire-core /bin/disabled-firewire-by-security-misc
+install firewire_core /bin/disabled-firewire-by-security-misc
+install firewire-ohci /bin/disabled-firewire-by-security-misc
+install firewire_ohci /bin/disabled-firewire-by-security-misc
+install firewire_sbp2 /bin/disabled-firewire-by-security-misc
+install firewire-sbp2 /bin/disabled-firewire-by-security-misc
+install ohci1394 /bin/disabled-firewire-by-security-misc
+install sbp2 /bin/disabled-firewire-by-security-misc
+install dv1394 /bin/disabled-firewire-by-security-misc
+install raw1394 /bin/disabled-firewire-by-security-misc
+install video1394 /bin/disabled-firewire-by-security-misc
+
+## Disable CPU MSRs as they can be abused to write to arbitrary memory.
+## https://security.stackexchange.com/questions/119712/methods-root-can-use-to-elevate-itself-to-kernel-mode
+install msr /bin/disabled-msr-by-security-misc
+
+## Disables unneeded network protocols that will likely not be used as these may have unknown vulnerabilties.
+## Credit to Tails (https://tails.boum.org/blueprint/blacklist_modules/) for some of these.
+## > Debian ships a long list of modules for wide support of devices, filesystems, protocols. Some of these modules have a pretty bad security track record, and some of those are simply not used by most of our users.
+## > Other distributions like Ubuntu[1] and Fedora[2] already ship a blacklist for various network protocols which aren't much in use by users and have a poor security track record.
+install dccp /bin/disabled-network-by-security-misc
+install sctp /bin/disabled-network-by-security-misc
+install rds /bin/disabled-network-by-security-misc
+install tipc /bin/disabled-network-by-security-misc
+install n-hdlc /bin/disabled-network-by-security-misc
+install ax25 /bin/disabled-network-by-security-misc
+install netrom /bin/disabled-network-by-security-misc
+install x25 /bin/disabled-network-by-security-misc
+install rose /bin/disabled-network-by-security-misc
+install decnet /bin/disabled-network-by-security-misc
+install econet /bin/disabled-network-by-security-misc
+install af_802154 /bin/disabled-network-by-security-misc
+install ipx /bin/disabled-network-by-security-misc
+install appletalk /bin/disabled-network-by-security-misc
+install psnap /bin/disabled-network-by-security-misc
+install p8023 /bin/disabled-network-by-security-misc
+install p8022 /bin/disabled-network-by-security-misc
+install can /bin/disabled-network-by-security-misc
+install atm /bin/disabled-network-by-security-misc
+
+## Disable uncommon file systems to reduce attack surface
+## HFS and HFS+ are legacy Apple filesystems that may be required depending on the EFI parition format
+install cramfs /bin/disabled-filesys-by-security-misc
+install freevxfs /bin/disabled-filesys-by-security-misc
+install jffs2 /bin/disabled-filesys-by-security-misc
+install hfs /bin/disabled-filesys-by-security-misc
+install hfsplus /bin/disabled-filesys-by-security-misc
+install udf /bin/disabled-filesys-by-security-misc
+
+## Disable uncommon network file systems to reduce attack surface
+install cifs /bin/disabled-netfilesys-by-security-misc
+install nfs /bin/disabled-netfilesys-by-security-misc
+install nfsv3 /bin/disabled-netfilesys-by-security-misc
+install nfsv4 /bin/disabled-netfilesys-by-security-misc
+install ksmbd /bin/disabled-netfilesys-by-security-misc
+install gfs2 /bin/disabled-netfilesys-by-security-misc
+
+## Disables the vivid kernel module as it's only required for testing and has been the cause of multiple vulnerabilities
+## https://forums.whonix.org/t/kernel-recompilation-for-better-hardening/7598/233
+## https://www.openwall.com/lists/oss-security/2019/11/02/1
+## https://github.com/a13xp0p0v/kconfig-hardened-check/commit/981bd163fa19fccbc5ce5d4182e639d67e484475
+install vivid /bin/disabled-vivid-by-security-misc
+
+## Disable Intel Management Engine (ME) interface with the OS
+## https://www.kernel.org/doc/html/latest/driver-api/mei/mei.html
+install mei /bin/disabled-intelme-by-security-misc
+install mei-me /bin/disabled-intelme-by-security-misc
+
+## Blacklist automatic loading of the Atheros 5K RF MACs madwifi driver
+## https://git.launchpad.net/ubuntu/+source/kmod/tree/debian/modprobe.d/blacklist-ath_pci.conf?h=ubuntu/disco
+blacklist ath_pci
+
+## Blacklist automatic loading of miscellaneous modules
+## https://git.launchpad.net/ubuntu/+source/kmod/tree/debian/modprobe.d/blacklist.conf?h=ubuntu/disco
+blacklist evbug
+blacklist usbmouse
+blacklist usbkbd
+blacklist eepro100
+blacklist de4x5
+blacklist eth1394
+blacklist snd_intel8x0m
+blacklist snd_aw2
+blacklist prism54
+blacklist bcm43xx
+blacklist garmin_gps
+blacklist asus_acpi
+blacklist snd_pcsp
+blacklist pcspkr
+blacklist amd76x_edac
+
+## Blacklist automatic loading of framebuffer drivers
+## https://git.launchpad.net/ubuntu/+source/kmod/tree/debian/modprobe.d/blacklist-framebuffer.conf?h=ubuntu/disco
+blacklist aty128fb
+blacklist atyfb
+blacklist radeonfb
+blacklist cirrusfb
+blacklist cyber2000fb
+blacklist cyblafb
+blacklist gx1fb
+blacklist hgafb
+blacklist i810fb
+blacklist intelfb
+blacklist kyrofb
+blacklist lxfb
+blacklist matroxfb_bases
+blacklist neofb
+blacklist nvidiafb
+blacklist pm2fb
+blacklist rivafb
+blacklist s1d13xxxfb
+blacklist savagefb
+blacklist sisfb
+blacklist sstfb
+blacklist tdfxfb
+blacklist tridentfb
+blacklist vesafb
+blacklist vfb
+blacklist viafb
+blacklist vt8623fb
+blacklist udlfb
+
+## Disable CD-ROM devices
+## https://nvd.nist.gov/vuln/detail/CVE-2018-11506
+## https://forums.whonix.org/t/blacklist-more-kernel-modules-to-reduce-attack-surface/7989/31
+#install cdrom /bin/disabled-cdrom-by-security-misc
+#install sr_mod /bin/disabled-cdrom-by-security-misc
+blacklist cdrom
+blacklist sr_mod
+        '';
+      };
+    };
+   };
   fileSystems = {
     "/boot" = { options = [ ("nosuid") ("noexec") ("nodev") ]; };
     "/dev/shm" = {
@@ -337,7 +461,11 @@
     };
   };
   systemd = { coredump = { enable = false; }; };
-  users = { users = { root = { hashedPassword = "!"; }; }; }; # Prevents login
-  # to to the root account.
+  users = { users = { root = { hashedPassword = "!"; }; }; }; # Lock root user.
+  zramSwap.enable = true; # zram reduces the need to swap if you have a swap
+  # partition/file enabled, reducing risk of writing sensitive data to disk.
+  # zram can also *replace* swap if you don't need hibernation, and therefore
+  # bypass related issues entirely if you wish. Storage lifespan is also 
+  # improved by swapping to disk less, so even ignoring the indirect security
+  # benefits, this is just nice to have.
 }))
-
