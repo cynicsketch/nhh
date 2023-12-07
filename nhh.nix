@@ -1,10 +1,16 @@
-# This module is based primarily on madaidan's Linux Hardening Guide. See it
-# for detailed explanations:
-# Original URL: https://madaidans-insecurities.github.io/guides/linux-hardening.html
-# Archive: https://web.archive.org/web/20220320000126/https://madaidans-insecurities.github.io/guides/linux-hardening.html
+# Primarily sourced was madaidan's Linux Hardening Guide. See for details: 
+# URL: https://madaidans-insecurities.github.io/guides/linux-hardening.html
+# Archive: https://web.archive.org/web/20220320000126/https://madaidans-insecurities.github.io/guides/linux-hardening.html 
+
 # Additionally sourced is privsec's Desktop Linux Hardening:
-# Original URL: https://privsec.dev/posts/linux/desktop-linux-hardening/
-# Archive: archive.org is down at time of writing. Will fix later.
+# URL: https://privsec.dev/posts/linux/desktop-linux-hardening/
+# Archive: Latest version not yet indexed by archive.org.
+
+# Some configuration used was from Kicksecure's security-misc repository:
+# URL: https://github.com/Kicksecure/security-misc
+
+# Some configuration used was also from GrapheneOS server infrastructure:
+# URL: https://github.com/GrapheneOS/infrastructure
 
 # Sections from madaidan's guide that are IRRELEVANT/NON-APPLICABLE:
 # 1. (Advice)
@@ -159,6 +165,40 @@
         text = ''
         # /etc/securetty: list of terminals on which root is allowed to login.
         # See securetty(5) and login(1).
+        '';
+      };
+      "bluetooth/main.conf" = mkForce { # Borrow Kicksecure bluetooth configuration.
+        text = ''
+[General]
+# How long to stay in pairable mode before going back to non-discoverable
+# The value is in seconds. Default is 0.
+# 0 = disable timer, i.e. stay pairable forever
+PairableTimeout = 30
+
+# How long to stay in discoverable mode before going back to non-discoverable
+# The value is in seconds. Default is 180, i.e. 3 minutes.
+# 0 = disable timer, i.e. stay discoverable forever
+DiscoverableTimeout = 30
+
+# Maximum number of controllers allowed to be exposed to the system.
+# Default=0 (unlimited)
+MaxControllers=1
+
+# How long to keep temporary devices around
+# The value is in seconds. Default is 30.
+# 0 = disable timer, i.e. never keep temporary devices
+TemporaryTimeout = 0 
+
+[Policy]
+# AutoEnable defines option to enable all controllers when they are found.
+# This includes adapters present on start as well as adapters that are plugged
+# in later on. Defaults to 'true'.
+AutoEnable=false
+
+# network/on: A device will only accept advertising packets from peer
+# devices that contain private addresses. It may not be compatible with some
+# legacy devices since it requires the use of RPA(s) all the time.
+Privacy=network/on        
         '';
       };
       "modprobe.d/nixos.conf" = { # Borrow Kicksecure module blacklist.
@@ -466,6 +506,5 @@ blacklist sr_mod
   # partition/file enabled, reducing risk of writing sensitive data to disk.
   # zram can also *replace* swap if you don't need hibernation, and therefore
   # bypass related issues entirely if you wish. Storage lifespan is also 
-  # improved by swapping to disk less, so even ignoring the indirect security
-  # benefits, this is just nice to have.
+  # improved by swapping to disk less, so it's nice even ignoring security.
 }))
