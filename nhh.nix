@@ -38,9 +38,8 @@
 # 6 (Compiling everything is inconvenient)
 # 8.6 (No option, not for all systems)
 # 8.7 (Inconvenient, depends on specific user behavior)
-# 10.1 (Inconvenient, not within threat model)
-# 10.2 (Inconvenient, not within threat model)
-# 10.3 (No option)
+# 10.1 (Up to user to determine hostname and username)
+# 10.2 (Up to user to determine timezone, local, and keymap)
 # 10.5.3 (Not packaged)
 # 10.6 (Not packaged, inconvenient and not within threat model)
 # 11 (No option, NixOS doesn't obey FHS)
@@ -165,6 +164,13 @@
         text = ''
         # /etc/securetty: list of terminals on which root is allowed to login.
         # See securetty(5) and login(1).
+        '';
+      };
+      machine-id = { # Set machine-id to the Kicksecure machine-id, for privacy
+      # reasons. /var/lib/dbus/machine-id doesn't exist on dbus enabled NixOS
+      # systems, so we don't have to worry about that.
+        text = ''
+b08dfa6083e7567a1921a715000001fb
         '';
       };
       "bluetooth/main.conf" = mkForce { # Borrow Kicksecure bluetooth configuration.
@@ -502,9 +508,9 @@ blacklist sr_mod
   };
   systemd = { coredump = { enable = false; }; };
   users = { users = { root = { hashedPassword = "!"; }; }; }; # Lock root user.
-  zramSwap.enable = true; # zram reduces the need to swap if you have a swap
-  # partition/file enabled, reducing risk of writing sensitive data to disk.
+  zramSwap = { enable = true; }; # zram reduces the need to swap to disk
+  # reducing the risk of writing sensitive data to non-volatile storage.
   # zram can also *replace* swap if you don't need hibernation, and therefore
-  # bypass related issues entirely if you wish. Storage lifespan is also 
-  # improved by swapping to disk less, so it's nice even ignoring security.
+  # bypass related issues entirely. zram also as added benefits in improving
+  # storage lifespan and swap performance by effectively swapping to RAM.
 }))
