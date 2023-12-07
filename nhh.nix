@@ -43,6 +43,9 @@
 # 10.5.3 (Not packaged)
 # 10.6 (Not packaged, inconvenient and not within threat model)
 # 11 (No option, NixOS doesn't obey FHS)
+# 14 (Rather than enforce password quality with PAM, expect user
+# to enforce their own password quality; faildelay is, however,
+# implemented here)
 # 21.1 (Out of scope)
 # 21.2 (See above)
 # 21.3 (User's job to set passwords)
@@ -431,6 +434,13 @@ blacklist sr_mod
         su = { requireWheel = true; };
         su-l = { requireWheel = true; };
         system-login = { failDelay = { delay = "4000000"; }; };
+        passwd = { # Increase hashing rounds for /etc/shadow; this doesn't
+        # automatically rehash your passwords, you'll need to set passwords
+        # for your accounts again for this to work.
+          text = ''
+password required pam_unix.so sha512 shadow nullok rounds=65536
+        '';
+        };
       };
     };
     polkit = { # These polkit rules are only needed for GNOME Shell
