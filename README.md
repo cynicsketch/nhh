@@ -20,3 +20,4 @@ Notable things broken (by default): Hibernation is disabled by several changes, 
 # TODO:
 Implement Lanzaboote, a secure boot implementation for NixOS, when it is mature. 
 Add "proper" configuration, as in settings like "nhh.options.foobar = true;" in configuration.nix, rather than manually editing the module.
+Implement "statelessness" to revert changes to root after reboot. Not *cryptographically* secure like a "verified boot" implementation, but better than nothing.
