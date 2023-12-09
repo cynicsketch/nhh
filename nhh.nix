@@ -160,54 +160,60 @@
     # Alternative memory allocators can be more secure. graphene-hardened would
     # be most ideal for security. Note: On nixos-unstable (Nov 2023) 
     # graphene-hardened will BREAK your system, and nix rollbacks WILL NOT work.
-    systemPackages = # doas-sudo wrapper, only needed if using sudo.
-      (with pkgs; [ (((pkgs).writeScriptBin "sudo" ''exec doas "$@"'')) ]);
+    systemPackages = (with pkgs; [ # doas-sudo wrapper, only needed if using doas. rnano is
+    # restricted in functionality, which provides the same security benefits as
+    # sudoedit, although a bit less free in editor choice.
+      ((pkgs.writeScriptBin "sudo" ''exec doas "$@"''))
+      ((pkgs.writeScriptBin "sudoedit" ''exec doas rnano "$@"''))
+      ((pkgs.writeScriptBin "doasedit" ''exec doas rnano "$@"''))
+      nano
+    ]);
     etc = {
       securetty = { # Empty /etc/securetty to prevent root login on tty.
         text = ''
-        # /etc/securetty: list of terminals on which root is allowed to login.
-        # See securetty(5) and login(1).
+          # /etc/securetty: list of terminals on which root is allowed to login.
+          # See securetty(5) and login(1).
         '';
       };
       machine-id = { # Set machine-id to the Kicksecure machine-id, for privacy
       # reasons. /var/lib/dbus/machine-id doesn't exist on dbus enabled NixOS
       # systems, so we don't have to worry about that.
         text = ''
-b08dfa6083e7567a1921a715000001fb
+          b08dfa6083e7567a1921a715000001fb
         '';
       };
       "bluetooth/main.conf" = mkForce { # Borrow Kicksecure bluetooth configuration.
         text = ''
-[General]
-# How long to stay in pairable mode before going back to non-discoverable
-# The value is in seconds. Default is 0.
-# 0 = disable timer, i.e. stay pairable forever
-PairableTimeout = 30
+          [General]
+          # How long to stay in pairable mode before going back to non-discoverable
+          # The value is in seconds. Default is 0.
+          # 0 = disable timer, i.e. stay pairable forever
+          PairableTimeout = 30
 
-# How long to stay in discoverable mode before going back to non-discoverable
-# The value is in seconds. Default is 180, i.e. 3 minutes.
-# 0 = disable timer, i.e. stay discoverable forever
-DiscoverableTimeout = 30
+          # How long to stay in discoverable mode before going back to non-discoverable
+          # The value is in seconds. Default is 180, i.e. 3 minutes.
+          # 0 = disable timer, i.e. stay discoverable forever
+          DiscoverableTimeout = 30
 
-# Maximum number of controllers allowed to be exposed to the system.
-# Default=0 (unlimited)
-MaxControllers=1
+          # Maximum number of controllers allowed to be exposed to the system.
+          # Default=0 (unlimited)
+          MaxControllers=1
 
-# How long to keep temporary devices around
-# The value is in seconds. Default is 30.
-# 0 = disable timer, i.e. never keep temporary devices
-TemporaryTimeout = 0 
+          # How long to keep temporary devices around
+          # The value is in seconds. Default is 30.
+          # 0 = disable timer, i.e. never keep temporary devices
+          TemporaryTimeout = 0 
 
-[Policy]
-# AutoEnable defines option to enable all controllers when they are found.
-# This includes adapters present on start as well as adapters that are plugged
-# in later on. Defaults to 'true'.
-AutoEnable=false
+          [Policy]
+          # AutoEnable defines option to enable all controllers when they are found.
+          # This includes adapters present on start as well as adapters that are plugged
+          # in later on. Defaults to 'true'.
+          AutoEnable=false
 
-# network/on: A device will only accept advertising packets from peer
-# devices that contain private addresses. It may not be compatible with some
-# legacy devices since it requires the use of RPA(s) all the time.
-Privacy=network/on        
+          # network/on: A device will only accept advertising packets from peer
+          # devices that contain private addresses. It may not be compatible with some
+          # legacy devices since it requires the use of RPA(s) all the time.
+          Privacy=network/on        
         '';
       };
       "modprobe.d/nixos.conf" = { # Borrow Kicksecure module blacklist.
@@ -215,155 +221,155 @@ Privacy=network/on
       # loaded at all. "blacklist "foobar"" prevents the module from being
       # loaded automatically at boot, but it can still be loaded afterwards.
         text = ''
-## Copyright (C) 2012 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
-## See the file COPYING for copying conditions.
+          ## Copyright (C) 2012 - 2023 ENCRYPTED SUPPORT LP <adrelanos@whonix.org>
+          ## See the file COPYING for copying conditions.
 
-## See the following links for a community discussion and overview regarding the selections
-## https://forums.whonix.org/t/blacklist-more-kernel-modules-to-reduce-attack-surface/7989
-## https://madaidans-insecurities.github.io/guides/linux-hardening.html#kasr-kernel-modules
+          ## See the following links for a community discussion and overview regarding the selections
+          ## https://forums.whonix.org/t/blacklist-more-kernel-modules-to-reduce-attack-surface/7989
+          ## https://madaidans-insecurities.github.io/guides/linux-hardening.html#kasr-kernel-modules
 
-## Disable automatic conntrack helper assignment
-## https://phabricator.whonix.org/T486
-options nf_conntrack nf_conntrack_helper=0
+          ## Disable automatic conntrack helper assignment
+          ## https://phabricator.whonix.org/T486
+          options nf_conntrack nf_conntrack_helper=0
 
-## Disable bluetooth to reduce attack surface due to extended history of security vulnerabilities
-## https://en.wikipedia.org/wiki/Bluetooth#History_of_security_concerns
-#
-## Now replaced by a privacy and security preserving default bluetooth configuration for better usability
-#
-# install bluetooth /bin/disabled-bluetooth-by-security-misc
-# install btusb /bin/disabled-bluetooth-by-security-misc
+          ## Disable bluetooth to reduce attack surface due to extended history of security vulnerabilities
+          ## https://en.wikipedia.org/wiki/Bluetooth#History_of_security_concerns
+          #
+          ## Now replaced by a privacy and security preserving default bluetooth configuration for better usability
+          #
+          # install bluetooth /bin/disabled-bluetooth-by-security-misc
+          # install btusb /bin/disabled-bluetooth-by-security-misc
 
-## Disable thunderbolt and firewire modules to prevent some DMA attacks
-install thunderbolt /bin/disabled-thunderbolt-by-security-misc
-install firewire-core /bin/disabled-firewire-by-security-misc
-install firewire_core /bin/disabled-firewire-by-security-misc
-install firewire-ohci /bin/disabled-firewire-by-security-misc
-install firewire_ohci /bin/disabled-firewire-by-security-misc
-install firewire_sbp2 /bin/disabled-firewire-by-security-misc
-install firewire-sbp2 /bin/disabled-firewire-by-security-misc
-install ohci1394 /bin/disabled-firewire-by-security-misc
-install sbp2 /bin/disabled-firewire-by-security-misc
-install dv1394 /bin/disabled-firewire-by-security-misc
-install raw1394 /bin/disabled-firewire-by-security-misc
-install video1394 /bin/disabled-firewire-by-security-misc
+          ## Disable thunderbolt and firewire modules to prevent some DMA attacks
+          install thunderbolt /bin/disabled-thunderbolt-by-security-misc
+          install firewire-core /bin/disabled-firewire-by-security-misc
+          install firewire_core /bin/disabled-firewire-by-security-misc
+          install firewire-ohci /bin/disabled-firewire-by-security-misc
+          install firewire_ohci /bin/disabled-firewire-by-security-misc
+          install firewire_sbp2 /bin/disabled-firewire-by-security-misc
+          install firewire-sbp2 /bin/disabled-firewire-by-security-misc
+          install ohci1394 /bin/disabled-firewire-by-security-misc
+          install sbp2 /bin/disabled-firewire-by-security-misc
+          install dv1394 /bin/disabled-firewire-by-security-misc
+          install raw1394 /bin/disabled-firewire-by-security-misc
+          install video1394 /bin/disabled-firewire-by-security-misc
 
-## Disable CPU MSRs as they can be abused to write to arbitrary memory.
-## https://security.stackexchange.com/questions/119712/methods-root-can-use-to-elevate-itself-to-kernel-mode
-install msr /bin/disabled-msr-by-security-misc
+          ## Disable CPU MSRs as they can be abused to write to arbitrary memory.
+          ## https://security.stackexchange.com/questions/119712/methods-root-can-use-to-elevate-itself-to-kernel-mode
+          install msr /bin/disabled-msr-by-security-misc
 
-## Disables unneeded network protocols that will likely not be used as these may have unknown vulnerabilties.
-## Credit to Tails (https://tails.boum.org/blueprint/blacklist_modules/) for some of these.
-## > Debian ships a long list of modules for wide support of devices, filesystems, protocols. Some of these modules have a pretty bad security track record, and some of those are simply not used by most of our users.
-## > Other distributions like Ubuntu[1] and Fedora[2] already ship a blacklist for various network protocols which aren't much in use by users and have a poor security track record.
-install dccp /bin/disabled-network-by-security-misc
-install sctp /bin/disabled-network-by-security-misc
-install rds /bin/disabled-network-by-security-misc
-install tipc /bin/disabled-network-by-security-misc
-install n-hdlc /bin/disabled-network-by-security-misc
-install ax25 /bin/disabled-network-by-security-misc
-install netrom /bin/disabled-network-by-security-misc
-install x25 /bin/disabled-network-by-security-misc
-install rose /bin/disabled-network-by-security-misc
-install decnet /bin/disabled-network-by-security-misc
-install econet /bin/disabled-network-by-security-misc
-install af_802154 /bin/disabled-network-by-security-misc
-install ipx /bin/disabled-network-by-security-misc
-install appletalk /bin/disabled-network-by-security-misc
-install psnap /bin/disabled-network-by-security-misc
-install p8023 /bin/disabled-network-by-security-misc
-install p8022 /bin/disabled-network-by-security-misc
-install can /bin/disabled-network-by-security-misc
-install atm /bin/disabled-network-by-security-misc
+          ## Disables unneeded network protocols that will likely not be used as these may have unknown vulnerabilties.
+          ## Credit to Tails (https://tails.boum.org/blueprint/blacklist_modules/) for some of these.
+          ## > Debian ships a long list of modules for wide support of devices, filesystems, protocols. Some of these modules have a pretty bad security track record, and some of those are simply not used by most of our users.
+          ## > Other distributions like Ubuntu[1] and Fedora[2] already ship a blacklist for various network protocols which aren't much in use by users and have a poor security track record.
+          install dccp /bin/disabled-network-by-security-misc
+          install sctp /bin/disabled-network-by-security-misc
+          install rds /bin/disabled-network-by-security-misc
+          install tipc /bin/disabled-network-by-security-misc
+          install n-hdlc /bin/disabled-network-by-security-misc
+          install ax25 /bin/disabled-network-by-security-misc
+          install netrom /bin/disabled-network-by-security-misc
+          install x25 /bin/disabled-network-by-security-misc
+          install rose /bin/disabled-network-by-security-misc
+          install decnet /bin/disabled-network-by-security-misc
+          install econet /bin/disabled-network-by-security-misc
+          install af_802154 /bin/disabled-network-by-security-misc
+          install ipx /bin/disabled-network-by-security-misc
+          install appletalk /bin/disabled-network-by-security-misc
+          install psnap /bin/disabled-network-by-security-misc
+          install p8023 /bin/disabled-network-by-security-misc
+          install p8022 /bin/disabled-network-by-security-misc
+          install can /bin/disabled-network-by-security-misc
+          install atm /bin/disabled-network-by-security-misc
 
-## Disable uncommon file systems to reduce attack surface
-## HFS and HFS+ are legacy Apple filesystems that may be required depending on the EFI parition format
-install cramfs /bin/disabled-filesys-by-security-misc
-install freevxfs /bin/disabled-filesys-by-security-misc
-install jffs2 /bin/disabled-filesys-by-security-misc
-install hfs /bin/disabled-filesys-by-security-misc
-install hfsplus /bin/disabled-filesys-by-security-misc
-install udf /bin/disabled-filesys-by-security-misc
+          ## Disable uncommon file systems to reduce attack surface
+          ## HFS and HFS+ are legacy Apple filesystems that may be required depending on the EFI parition format
+          install cramfs /bin/disabled-filesys-by-security-misc
+          install freevxfs /bin/disabled-filesys-by-security-misc
+          install jffs2 /bin/disabled-filesys-by-security-misc
+          install hfs /bin/disabled-filesys-by-security-misc
+          install hfsplus /bin/disabled-filesys-by-security-misc
+          install udf /bin/disabled-filesys-by-security-misc
 
-## Disable uncommon network file systems to reduce attack surface
-install cifs /bin/disabled-netfilesys-by-security-misc
-install nfs /bin/disabled-netfilesys-by-security-misc
-install nfsv3 /bin/disabled-netfilesys-by-security-misc
-install nfsv4 /bin/disabled-netfilesys-by-security-misc
-install ksmbd /bin/disabled-netfilesys-by-security-misc
-install gfs2 /bin/disabled-netfilesys-by-security-misc
+          ## Disable uncommon network file systems to reduce attack surface
+          install cifs /bin/disabled-netfilesys-by-security-misc
+          install nfs /bin/disabled-netfilesys-by-security-misc
+          install nfsv3 /bin/disabled-netfilesys-by-security-misc
+          install nfsv4 /bin/disabled-netfilesys-by-security-misc
+          install ksmbd /bin/disabled-netfilesys-by-security-misc
+          install gfs2 /bin/disabled-netfilesys-by-security-misc
 
-## Disables the vivid kernel module as it's only required for testing and has been the cause of multiple vulnerabilities
-## https://forums.whonix.org/t/kernel-recompilation-for-better-hardening/7598/233
-## https://www.openwall.com/lists/oss-security/2019/11/02/1
-## https://github.com/a13xp0p0v/kconfig-hardened-check/commit/981bd163fa19fccbc5ce5d4182e639d67e484475
-install vivid /bin/disabled-vivid-by-security-misc
+          ## Disables the vivid kernel module as it's only required for testing and has been the cause of multiple vulnerabilities
+          ## https://forums.whonix.org/t/kernel-recompilation-for-better-hardening/7598/233
+          ## https://www.openwall.com/lists/oss-security/2019/11/02/1
+          ## https://github.com/a13xp0p0v/kconfig-hardened-check/commit/981bd163fa19fccbc5ce5d4182e639d67e484475
+          install vivid /bin/disabled-vivid-by-security-misc
 
-## Disable Intel Management Engine (ME) interface with the OS
-## https://www.kernel.org/doc/html/latest/driver-api/mei/mei.html
-install mei /bin/disabled-intelme-by-security-misc
-install mei-me /bin/disabled-intelme-by-security-misc
+          ## Disable Intel Management Engine (ME) interface with the OS
+          ## https://www.kernel.org/doc/html/latest/driver-api/mei/mei.html
+          install mei /bin/disabled-intelme-by-security-misc
+          install mei-me /bin/disabled-intelme-by-security-misc
 
-## Blacklist automatic loading of the Atheros 5K RF MACs madwifi driver
-## https://git.launchpad.net/ubuntu/+source/kmod/tree/debian/modprobe.d/blacklist-ath_pci.conf?h=ubuntu/disco
-blacklist ath_pci
+          ## Blacklist automatic loading of the Atheros 5K RF MACs madwifi driver
+          ## https://git.launchpad.net/ubuntu/+source/kmod/tree/debian/modprobe.d/blacklist-ath_pci.conf?h=ubuntu/disco
+          blacklist ath_pci
 
-## Blacklist automatic loading of miscellaneous modules
-## https://git.launchpad.net/ubuntu/+source/kmod/tree/debian/modprobe.d/blacklist.conf?h=ubuntu/disco
-blacklist evbug
-blacklist usbmouse
-blacklist usbkbd
-blacklist eepro100
-blacklist de4x5
-blacklist eth1394
-blacklist snd_intel8x0m
-blacklist snd_aw2
-blacklist prism54
-blacklist bcm43xx
-blacklist garmin_gps
-blacklist asus_acpi
-blacklist snd_pcsp
-blacklist pcspkr
-blacklist amd76x_edac
+          ## Blacklist automatic loading of miscellaneous modules
+          ## https://git.launchpad.net/ubuntu/+source/kmod/tree/debian/modprobe.d/blacklist.conf?h=ubuntu/disco
+          blacklist evbug
+          blacklist usbmouse
+          blacklist usbkbd
+          blacklist eepro100
+          blacklist de4x5
+          blacklist eth1394
+          blacklist snd_intel8x0m
+          blacklist snd_aw2
+          blacklist prism54
+          blacklist bcm43xx
+          blacklist garmin_gps
+          blacklist asus_acpi
+          blacklist snd_pcsp
+          blacklist pcspkr
+          blacklist amd76x_edac
 
-## Blacklist automatic loading of framebuffer drivers
-## https://git.launchpad.net/ubuntu/+source/kmod/tree/debian/modprobe.d/blacklist-framebuffer.conf?h=ubuntu/disco
-blacklist aty128fb
-blacklist atyfb
-blacklist radeonfb
-blacklist cirrusfb
-blacklist cyber2000fb
-blacklist cyblafb
-blacklist gx1fb
-blacklist hgafb
-blacklist i810fb
-blacklist intelfb
-blacklist kyrofb
-blacklist lxfb
-blacklist matroxfb_bases
-blacklist neofb
-blacklist nvidiafb
-blacklist pm2fb
-blacklist rivafb
-blacklist s1d13xxxfb
-blacklist savagefb
-blacklist sisfb
-blacklist sstfb
-blacklist tdfxfb
-blacklist tridentfb
-blacklist vesafb
-blacklist vfb
-blacklist viafb
-blacklist vt8623fb
-blacklist udlfb
+          ## Blacklist automatic loading of framebuffer drivers
+          ## https://git.launchpad.net/ubuntu/+source/kmod/tree/debian/modprobe.d/blacklist-framebuffer.conf?h=ubuntu/disco
+          blacklist aty128fb
+          blacklist atyfb
+          blacklist radeonfb
+          blacklist cirrusfb
+          blacklist cyber2000fb
+          blacklist cyblafb
+          blacklist gx1fb
+          blacklist hgafb
+          blacklist i810fb
+          blacklist intelfb
+          blacklist kyrofb
+          blacklist lxfb
+          blacklist matroxfb_bases
+          blacklist neofb
+          blacklist nvidiafb
+          blacklist pm2fb
+          blacklist rivafb
+          blacklist s1d13xxxfb
+          blacklist savagefb
+          blacklist sisfb
+          blacklist sstfb
+          blacklist tdfxfb
+          blacklist tridentfb
+          blacklist vesafb
+          blacklist vfb
+          blacklist viafb
+          blacklist vt8623fb
+          blacklist udlfb
 
-## Disable CD-ROM devices
-## https://nvd.nist.gov/vuln/detail/CVE-2018-11506
-## https://forums.whonix.org/t/blacklist-more-kernel-modules-to-reduce-attack-surface/7989/31
-#install cdrom /bin/disabled-cdrom-by-security-misc
-#install sr_mod /bin/disabled-cdrom-by-security-misc
-blacklist cdrom
-blacklist sr_mod
+          ## Disable CD-ROM devices
+          ## https://nvd.nist.gov/vuln/detail/CVE-2018-11506
+          ## https://forums.whonix.org/t/blacklist-more-kernel-modules-to-reduce-attack-surface/7989/31
+          #install cdrom /bin/disabled-cdrom-by-security-misc
+          #install sr_mod /bin/disabled-cdrom-by-security-misc
+          blacklist cdrom
+          blacklist sr_mod
         '';
       };
     };
@@ -438,8 +444,8 @@ blacklist sr_mod
         # automatically rehash your passwords, you'll need to set passwords
         # for your accounts again for this to work.
           text = ''
-password required pam_unix.so sha512 shadow nullok rounds=65536
-        '';
+            password required pam_unix.so sha512 shadow nullok rounds=65536
+          '';
         };
       };
     };
@@ -481,6 +487,10 @@ password required pam_unix.so sha512 shadow nullok rounds=65536
       # The below config is borrowed from GrapheneOS server infrastructure.
       # It enables NTS to secure NTP requests, among some other useful
       # settings.
+      enableRTCTrimming = false; # Disable 'rtcautotrim' so that 'rtcsync'
+      # can be used instead. Either this or 'rtcsync' must be disabled to
+      # complete a successful rebuild, or an error will be thrown due to these
+      # options conflicting with eachother.
       extraConfig = ''
         server time.cloudflare.com iburst nts
         server ntppool1.time.nl iburst nts
