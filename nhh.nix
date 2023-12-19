@@ -373,26 +373,32 @@
         '';
       };
     };
-   };
+  };
   fileSystems = {
     "/boot" = { options = [ ("nosuid") ("noexec") ("nodev") ]; };
     "/dev/shm" = {
       device = "/dev/shm";
       options = [ ("bind") ("nosuid") ("noexec") ("nodev") ];
     };
-    "/home" = { # NOTABLE REGRESSION!!!
-    # Add noexec for more security, if your workflow allows for it.
+    "/home" = { # Remove noexec if you must run executables in /home.
       device = "/home";
-      options = [ ("bind") ("nosuid") ("nodev") ];
+      options = [ ("bind") ("nosuid") ("noexec") ("nodev") ];
     };
     "/tmp" = {
       device = "/tmp";
       options = [ ("bind") ("nosuid") ("noexec") ("nodev") ];
     };
-    "/var" = { # NOTABLE REGRESSION!!!
-    # Add noexec for more security, if your workflow allows for it.
+    "/var" = { # noexec may break some apps, although setting "exec"
+    # on /var/lib as seen below unbreaks software including, but not
+    # limited to: LXC, system-wide Flatpaks.
       device = "/var";
-      options = [ ("bind") ("nosuid") ("nodev") ];
+      options = [ ("bind") ("nosuid") ("noexec") ("nodev") ];
+    };
+    "/var/lib" = { # NOTABLE REGRESSION!!!
+    # Allowing exec in /var/lib unbreaks some software (see above), but if
+    # not necessary, this just increases attack surface with no benefit.
+      device = "/var/lib";
+      options = [ ("bind") ("nosuid") ("exec") ("nodev") ];
     };
   };
   networking = { # Enables firewall. You may need to tweak your firewall rules
@@ -528,7 +534,7 @@
   };
   systemd = { coredump = { enable = false; }; };
   users = { users = { root = { hashedPassword = "!"; }; }; }; # Lock root user.
-  zramSwap = { enable = true; }; # zram reduces the need to swap to disk
+  zramSwap = { enable = true; }; # zram reduces the need to swap to disk,
   # reducing the risk of writing sensitive data to non-volatile storage.
   # zram can also *replace* swap if you don't need hibernation, and therefore
   # bypass related issues entirely. zram also as added benefits in improving
